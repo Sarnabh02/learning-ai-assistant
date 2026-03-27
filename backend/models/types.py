@@ -42,6 +42,7 @@ class PracticeProblem(BaseModel):
     difficulty: Literal["easy", "medium", "hard"]
     statement: str
     hints: list[PracticeHint]
+    answer: Optional[str] = None
     principlesExercised: list[str]
 
 
@@ -94,9 +95,3 @@ class SummaryRequest(BaseModel):
     practiceProblems: list[dict]   # difficulty, statement
 
 
-class TutorRequest(BaseModel):
-    sessionId: str
-    homeworkQuestion: str
-    conversationHistory: list[dict]  # [{role: "user"|"assistant", content: str}]
-    turnNumber: int
-    model: Optional[str] = None

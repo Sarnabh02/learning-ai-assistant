@@ -37,9 +37,7 @@ export async function GET() {
     const response = await fetch(`${PYTHON_API}/models`);
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (err) {
-    console.error('Failed to fetch models from backend:', err);
-    // Fallback to mock models if backend is unavailable
+  } catch {
     return NextResponse.json(MOCK_MODELS);
   }
 }

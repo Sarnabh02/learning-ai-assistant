@@ -13,10 +13,6 @@ interface LearningStore {
   pendingFile: File | null;
   setPendingFile: (file: File | null) => void;
 
-  // Mode handoff: 'learn' (default) or 'tutor'
-  pendingMode: 'learn' | 'tutor';
-  setPendingMode: (mode: 'learn' | 'tutor') => void;
-
   // Active learning session
   session: LearningSession | null;
   setSession: (session: LearningSession) => void;
@@ -40,11 +36,9 @@ const EMPTY_SESSION: LearningSession = {
 
 export const useLearningStore = create<LearningStore>((set) => ({
   pendingFile: null,
-  pendingMode: 'learn',
   session: null,
 
   setPendingFile: (file) => set({ pendingFile: file }),
-  setPendingMode: (mode) => set({ pendingMode: mode }),
 
   setSession: (session) => set({ session }),
 
@@ -77,5 +71,5 @@ export const useLearningStore = create<LearningStore>((set) => ({
         : null,
     })),
 
-  reset: () => set({ session: null, pendingFile: null, pendingMode: 'learn' }),
+  reset: () => set({ session: null, pendingFile: null }),
 }));

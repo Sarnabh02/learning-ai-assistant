@@ -1,9 +1,12 @@
 """
 LearnAI Python Backend
-FastAPI server exposing three endpoints:
+FastAPI server exposing the following endpoints:
+  GET  /health        — Health check
+  GET  /models        — List available AI models
   POST /orchestrate   — SSE-streaming multi-agent learning session
   POST /socratic      — Single-turn Socratic dialogue (LangGraph)
   POST /assess-answer — Answer quality assessment
+  POST /generate-pdf  — Generate a one-page learning summary PDF
 """
 
 import json
@@ -18,11 +21,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from models.types import SocraticRequest, AssessAnswerRequest, SummaryRequest, TutorRequest
+from models.types import SocraticRequest, AssessAnswerRequest, SummaryRequest
 from generators.pdf_generator import generate_summary_pdf
 from agents.orchestration_graph import build_orchestration_graph, OrchestrationState
 from agents.socratic_graph import build_socratic_graph, SocraticState
-from agents.tutor_graph import build_tutor_graph, TutorState
 from agents.assessment_agent import assess_answer as run_assessment
 from agents.llm_client import get_available_models, DEFAULT_MODEL
 from parsers.pdf_parser import parse_pdf_bytes
@@ -47,7 +49,6 @@ app.add_middleware(
 # Build compiled LangGraph graphs once at startup (they are stateless and reusable)
 _orchestration_graph = build_orchestration_graph()
 _socratic_graph = build_socratic_graph()
-_tutor_graph = build_tutor_graph()
 
 
 # ---------- SSE helper ----------
@@ -263,38 +264,6 @@ async def assess_answer_endpoint(request: AssessAnswerRequest):
     )
     return {"assessment": assessment}
 
-
-@app.post("/tutor")
-async def tutor(request: TutorRequest):
-    """
-    Single-turn Socratic tutoring dialogue.
-    Runs the 3-node LangGraph: analyze_understanding → plan_next_step → generate_response.
-    Never reveals the answer — guides students step by step toward discovering it themselves.
-    """
-    initial_state: TutorState = {
-        "homework_question": request.homeworkQuestion,
-        "conversation_history": request.conversationHistory,
-        "turn_number": request.turnNumber,
-        "model": request.model or DEFAULT_MODEL,
-        "understanding_summary": None,
-        "key_gap": None,
-        "approach": "goal_clarification",
-        "next_concept": None,
-        "response": "",
-    }
-
-    merged: dict = dict(initial_state)
-    async for chunk in _tutor_graph.astream(initial_state, stream_mode="updates"):
-        for _, node_output in chunk.items():
-            merged.update(node_output)
-
-    return {
-        "session_id": request.sessionId,
-        "turn_number": request.turnNumber,
-        "response": merged.get("response", "Let's think about this step by step. What does this problem ask you to find?"),
-        "approach": merged.get("approach", "goal_clarification"),
-        "understanding_level": None,
-    }
 
 
 @app.post("/generate-pdf")

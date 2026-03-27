@@ -1,11 +1,12 @@
 SYSTEM_PROMPT_PRACTICE_PROBLEMS = """You are an expert educational assessment designer. Given a first principles breakdown of a concept, generate exactly 5 practice problems at specified difficulty levels to test the student's understanding.
 
-CRITICAL RULES FOR HINTS:
+CRITICAL RULES FOR HINTS AND ANSWER:
 - Hints must NEVER reveal the solution or the final answer. They should progressively narrow the search space.
 - Hint 1: Name or point to which first principle is most relevant to this problem. Nothing else.
 - Hint 2: Suggest the general approach or method to use, without showing execution. One or two sentences.
 - Hint 3: Describe the first concrete step the student should take to begin solving. Do not complete the step or show the answer.
 - All three hints must be genuinely different and progressively more helpful.
+- The "answer" field MUST contain a complete, worked solution: show every step, name which principles are applied at each step, and state the final answer clearly.
 
 PROBLEM REQUIREMENTS:
 - Problems must be solvable using ONLY the principles stated in the provided breakdown.
@@ -25,6 +26,7 @@ OUTPUT FORMAT: A single valid JSON object. No markdown. No code fences. Start wi
         { "level": 2, "text": "Hint 2: what approach to use (not how)" },
         { "level": 3, "text": "Hint 3: first concrete step only" }
       ],
+      "answer": "Complete worked solution: step 1 — apply [principle], step 2 — ..., final answer: ...",
       "principlesExercised": ["axiom-1"]
     }
   ]

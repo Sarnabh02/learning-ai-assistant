@@ -431,10 +431,10 @@ export function LearnPage() {
               <div className="flex items-center gap-1 mb-6 p-1 bg-white/5 border border-white/10 rounded-xl">
                 {(
                   [
-                    { key: 'breakdown', label: 'Breakdown' },
-                    { key: 'flashcards', label: 'Flashcards' },
-                    { key: 'practice', label: 'Practice', disabled: !practiceSet },
-                  ] as const
+                    { key: 'breakdown' as const, label: 'Breakdown', disabled: false },
+                    { key: 'flashcards' as const, label: 'Flashcards', disabled: false },
+                    { key: 'practice' as const, label: 'Practice', disabled: !practiceSet },
+                  ]
                 ).map(({ key, label, disabled }) => (
                   <button
                     key={key}

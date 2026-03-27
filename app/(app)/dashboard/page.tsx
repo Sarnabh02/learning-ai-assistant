@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLearningStore } from '@/store/learning-store';
 
-type Mode = 'learn' | 'tutor';
-
 interface DocEntry {
   id: string;
   name: string;
@@ -19,7 +17,6 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const setPendingFile = useLearningStore((s) => s.setPendingFile);
-  const setPendingMode = useLearningStore((s) => s.setPendingMode);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,10 +35,9 @@ export default function DashboardPage() {
     }, 0);
   };
 
-  const handleOpenDoc = (doc: DocEntry, mode: Mode) => {
+  const handleOpenDoc = (doc: DocEntry) => {
     setPendingFile(doc.file);
-    setPendingMode(mode);
-    router.push(mode === 'tutor' ? '/tutor' : '/learn');
+    router.push('/learn');
   };
 
   return (
@@ -126,8 +122,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Mode selection cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          {/* Mode selection card */}
+          <div className="mt-8">
             <Link
               href="/learn"
               className="group relative bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-violet-400/30 hover:border-violet-400/60 rounded-2xl p-8 hover:bg-violet-500/25 transition-all duration-300 flex items-center gap-6"
@@ -135,29 +131,12 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
               <div className="relative text-5xl flex-shrink-0">🔬</div>
               <div className="relative">
-                <div className="text-xs font-semibold text-violet-400 uppercase tracking-widest mb-1">Mode 1</div>
                 <h4 className="text-xl font-bold text-white mb-1">Learn</h4>
                 <p className="text-violet-200 text-sm">
                   AI breaks any topic into first principles, generates practice problems, and coaches you with Socratic dialogue.
                 </p>
               </div>
               <div className="relative ml-auto flex-shrink-0 text-violet-400 text-xl font-bold">→</div>
-            </Link>
-
-            <Link
-              href="/tutor"
-              className="group relative bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-400/30 hover:border-amber-400/60 rounded-2xl p-8 hover:bg-amber-500/25 transition-all duration-300 flex items-center gap-6"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
-              <div className="relative text-5xl flex-shrink-0">🧑‍🏫</div>
-              <div className="relative">
-                <div className="text-xs font-semibold text-amber-400 uppercase tracking-widest mb-1">Mode 2</div>
-                <h4 className="text-xl font-bold text-white mb-1">Tutoring Chat</h4>
-                <p className="text-amber-100 text-sm">
-                  Paste your homework question. The AI guides you to the answer through questions — never by solving it for you.
-                </p>
-              </div>
-              <div className="relative ml-auto flex-shrink-0 text-amber-400 text-xl font-bold">→</div>
             </Link>
           </div>
 
@@ -180,16 +159,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleOpenDoc(doc, 'learn')}
+                        onClick={() => handleOpenDoc(doc)}
                         className="px-4 py-2 bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white rounded-lg font-semibold text-sm transition-all duration-300 transform hover:scale-105"
                       >
                         Learn →
-                      </button>
-                      <button
-                        onClick={() => handleOpenDoc(doc, 'tutor')}
-                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-semibold text-sm transition-all duration-300 transform hover:scale-105"
-                      >
-                        Tutor →
                       </button>
                     </div>
                   </div>
@@ -200,16 +173,10 @@ export default function DashboardPage() {
 
           {/* How it works banner */}
           <div className="bg-gradient-to-r from-violet-500/20 to-cyan-500/20 border border-white/20 rounded-3xl p-8 backdrop-blur-xl mt-8 mb-8">
-            <p className="text-lg font-semibold text-cyan-300 mb-4 text-center">Two Ways to Learn</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="space-y-1">
-                <p className="text-violet-300 font-semibold">🔬 Learn</p>
-                <p className="text-purple-100 font-light">Upload or type a topic → AI builds first-principles breakdown → Practice problems → Socratic coaching</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-amber-300 font-semibold">🧑‍🏫 Tutoring Chat</p>
-                <p className="text-purple-100 font-light">Paste homework question → AI asks guiding questions → You discover the solution through your own reasoning</p>
-              </div>
+            <p className="text-lg font-semibold text-cyan-300 mb-4 text-center">How it works</p>
+            <div className="text-sm space-y-1">
+              <p className="text-violet-300 font-semibold">🔬 Learn</p>
+              <p className="text-purple-100 font-light">Upload or type a topic → AI builds first-principles breakdown → Practice problems → Socratic coaching</p>
             </div>
           </div>
         </div>

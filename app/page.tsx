@@ -78,7 +78,7 @@ export default function Home() {
                   <span className="text-2xl">💬</span>
                   Chat
                 </Link>
-                <span className="text-xs text-white/45 tracking-wide uppercase">Start a live tutor chat</span>
+                <span className="text-xs text-white/45 tracking-wide uppercase">Build first-principles understanding</span>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <Link

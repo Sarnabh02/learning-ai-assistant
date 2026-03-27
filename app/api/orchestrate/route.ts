@@ -100,13 +100,12 @@ export async function POST(request: NextRequest) {
 
   let upstream: Response;
   try {
-    // @ts-expect-error — Node.js fetch (undici) supports ReadableStream body with duplex
     upstream = await fetch(`${PYTHON_API}/orchestrate`, {
       method: 'POST',
       body: upstreamBody,
       headers: upstreamHeaders,
       duplex: 'half',
-    });
+    } as RequestInit);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Python backend unreachable';
     return new Response(

@@ -1,82 +1,102 @@
-# LearnAI — AI-Powered Education Assistant
+# LearnAI — Learn Anything from First Principles
 
-An intelligent tutoring platform that breaks down any subject into first principles and teaches through Socratic dialogue. Upload a document or describe a topic — LearnAI generates conceptual breakdowns, practice problems, and coaches you to the answer without ever giving it away.
+LearnAI is an AI-powered education assistant that transforms any topic or document into a structured learning experience. It breaks down complex subjects into their fundamental building blocks, generates targeted practice problems, and coaches students through them using Socratic dialogue — never giving answers directly, always guiding discovery.
 
 ---
 
-## What It Does
+## Features
 
-**Learn Mode** — Give it any topic or upload a PDF/PPTX. LearnAI decomposes the material into its foundational principles, generates targeted practice problems, and opens a Socratic chat for each one where it guides your thinking through questions.
+### First Principles Breakdown
+Upload a PDF or PPTX, or type any topic, and the system generates a structured breakdown:
+- **First principles** — the irreducible axioms that underpin the topic
+- **Derivation chain** — how higher-level concepts build from those axioms
+- **Worked examples** — fully solved problems demonstrating the principles in action
 
-**Tutor Mode** — Paste a homework question. A multi-turn coaching agent walks you through the problem step-by-step, identifying where your understanding breaks down and asking the right question to push you forward.
+### Practice Problems
+Five difficulty-graded problems (easy / medium / hard) targeting the specific first principles identified. Each problem includes three progressive hints that reveal themselves one at a time to scaffold understanding without giving anything away.
+
+### Socratic Coaching
+An AI tutor engages with the student on each practice problem via a chat interface, powered by a 4-node LangGraph pipeline:
+
+| Node | What it does |
+|---|---|
+| `identify_goal` | Understands what the student is trying to solve |
+| `extract_variables` | Identifies known/unknown quantities and constraints |
+| `rank_principles` | Surfaces the most relevant first principles from the breakdown |
+| `generate_question` | Asks one targeted guiding question — never reveals the answer |
+
+After turn 5, the tutor may hint at a relevant first principle to help the student connect theory to the problem.
+
+### Answer Assessment
+After the student submits an answer, the AI evaluates it against the first principles context and returns:
+- Correct / incorrect determination
+- Score (0–100), discounted based on hints used
+- Identified strengths and conceptual gaps
+- A Socratic follow-up question to deepen understanding
+
+### Flashcards
+Every first principle, derivation step, and worked example is available as an interactive flashcard deck for rapid review.
+
+### PDF Summary Export
+Download a one-page PDF summary of the learning session: topic, domain, difficulty, first principles, derivation chain, and practice problems.
+
+### Model Selection
+Choose between Claude (Anthropic), GPT-4 (OpenAI), or Gemini (Google) as the AI backbone for the session.
+
+### Mock Data Mode
+Run the full UI without any API keys by setting `USE_MOCK_DATA=true`. Useful for UI development and demos.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│           Next.js Frontend              │
-│  Dashboard → Learn → SocraticChat       │
-│  Zustand state (pendingFile + session)  │
-└──────────────┬──────────────────────────┘
-               │ SSE / JSON (API Routes)
-┌──────────────▼──────────────────────────┐
-│         Python Backend (FastAPI)        │
-│                                         │
-│  /orchestrate  ─→  LangGraph            │
-│    intake → breakdown → problems        │
-│                                         │
-│  /socratic     ─→  LangGraph            │
-│    identify_goal → extract_variables    │
-│    → rank_principles → generate_question│
-│                                         │
-│  /tutor        ─→  LangGraph            │
-│    analyze_understanding → plan_next    │
-│    → generate_response                  │
-│                                         │
-│  /assess-answer ─→  Single Claude call  │
-└─────────────────────────────────────────┘
+Browser
+  └── Next.js 16 (App Router, TypeScript, Tailwind CSS v4)
+        ├── /api/orchestrate    →  Python FastAPI /orchestrate   (SSE streaming)
+        ├── /api/socratic       →  Python FastAPI /socratic
+        ├── /api/assess-answer  →  Python FastAPI /assess-answer
+        ├── /api/generate-pdf   →  Python FastAPI /generate-pdf
+        └── /api/models         →  Python FastAPI /models
+
+Python FastAPI (uvicorn, port 8000)
+  ├── /orchestrate   — 3-node LangGraph: intake → breakdown → problems
+  ├── /socratic      — 4-node LangGraph: identify_goal → extract_variables → rank_principles → generate_question
+  ├── /assess-answer — LLM-based answer evaluation
+  ├── /generate-pdf  — ReportLab PDF generation (no LLM call)
+  └── /models        — Lists available models by provider
+
+Auth: Supabase (email/password + OAuth, session refresh via Next.js proxy middleware)
+State: Zustand (client-side session and pending file handoff between routes)
 ```
 
-**Frontend:** Next.js 16 (App Router), TypeScript, Tailwind v4, Zustand v5
-**Backend:** FastAPI, LangGraph, multi-provider LLM (Anthropic / OpenAI / Google)
-**Auth & DB:** Supabase
+The frontend is a thin proxy layer — all AI reasoning runs in the Python backend via LangGraph agents. API keys never touch the browser.
 
 ---
 
-## Agents & Graphs
+## Tech Stack
 
-### Orchestration Graph (`/orchestrate`)
-Triggered when a user submits a topic or uploads a document. Streams three SSE event stages:
+| Layer | Technology |
+|---|---|
+| Frontend framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS 4 |
+| State management | Zustand 5 |
+| Auth | Supabase |
+| Backend API | Python FastAPI + uvicorn |
+| AI orchestration | LangGraph 0.2+, LangChain 1.2+ |
+| LLM providers | Anthropic Claude, OpenAI GPT-4, Google Gemini |
+| File parsing | pypdf, python-pptx |
+| PDF generation | ReportLab |
 
-| Node | What it does |
-|------|-------------|
-| `intake` | Extracts domain, difficulty, and learning objectives from the input |
-| `breakdown` | Generates first-principles decomposition: core principles, derivation chain, worked examples |
-| `problems` | Generates tiered practice problems (easy/medium/hard) with 3-level hint scaffolding |
+---
 
-### Socratic Graph (`/socratic`)
-Runs per problem, per conversation turn:
+## Supported Models
 
-| Node | What it does |
-|------|-------------|
-| `identify_goal` | Extracts what the student is trying to figure out |
-| `extract_variables` | Identifies known and unknown variables |
-| `rank_principles` | Ranks first principles by keyword relevance (no extra LLM call) |
-| `generate_question` | Asks one targeted Socratic question; hints at a principle after turn 5 |
-
-### Tutor Graph (`/tutor`)
-Runs for homework help, escalates strategy turn-by-turn:
-
-| Node | What it does |
-|------|-------------|
-| `analyze_understanding` | Assesses the student's current grasp of the problem |
-| `plan_next_step` | Decides whether to clarify, probe a concept, or guide derivation |
-| `generate_response` | Outputs exactly one focused question — never the answer |
-
-### Assessment Agent (`/assess-answer`)
-Single Claude call that scores a student's answer, identifies conceptual gaps, and returns a Socratic follow-up question.
+| Provider | Models |
+|---|---|
+| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` |
+| OpenAI | `gpt-4o`, `gpt-4-turbo`, `gpt-4` |
+| Google | `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-2.0-flash-lite` |
 
 ---
 
@@ -85,169 +105,245 @@ Single Claude call that scores a student's answer, identifies conceptual gaps, a
 ```
 education-assistant/
 ├── app/
-│   ├── (auth)/login, signup, callback
-│   ├── (app)/dashboard, learn, tutor
-│   └── api/orchestrate, socratic, assess-answer, tutor, models
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   ├── signup/page.tsx
+│   │   └── callback/route.ts          # Supabase OAuth callback
+│   ├── (app)/
+│   │   ├── dashboard/page.tsx         # File upload and session launch
+│   │   └── learn/page.tsx             # Main learning interface
+│   ├── api/
+│   │   ├── orchestrate/route.ts       # SSE proxy → Python /orchestrate
+│   │   ├── socratic/route.ts          # Proxy → Python /socratic
+│   │   ├── assess-answer/route.ts     # Proxy → Python /assess-answer
+│   │   ├── generate-pdf/route.ts      # Proxy → Python /generate-pdf
+│   │   └── models/route.ts            # Proxy → Python /models
+│   ├── layout.tsx
+│   └── page.tsx                       # Landing page
+├── components/
+│   ├── chat/
+│   │   ├── SocraticChat.tsx           # Socratic dialogue UI
+│   │   └── ChatMessage.tsx
+│   └── learn/
+│       ├── LearnPage.tsx              # Orchestration controller (SSE consumer)
+│       ├── TopicInput.tsx             # Text / file input with model selector
+│       ├── BreakdownViewer.tsx        # First principles display
+│       ├── PracticeSection.tsx        # Problem list by difficulty
+│       ├── ProblemCard.tsx            # Individual problem with hint reveal
+│       ├── FlashCardDeck.tsx          # Interactive flashcard viewer
+│       ├── ModelSelector.tsx          # AI model dropdown
+│       └── LoadingPulse.tsx           # Loading state indicator
+├── lib/
+│   ├── first-principles/types.ts      # Shared TypeScript types
+│   ├── mock-data/                     # Sample responses for USE_MOCK_DATA mode
+│   └── supabase/                      # Browser/server/middleware Supabase clients
+├── store/
+│   └── learning-store.ts              # Zustand: session, breakdown, problems, file handoff
+├── proxy.ts                           # Next.js auth proxy (Supabase session refresh)
+├── next.config.ts
+├── tailwind.config.ts
+├── .env.example                       # Frontend environment template
 ├── backend/
-│   ├── main.py                  # FastAPI app
+│   ├── main.py                        # FastAPI application
 │   ├── agents/
-│   │   ├── llm_client.py        # Unified Anthropic/OpenAI/Google wrapper
-│   │   ├── orchestration_graph.py
-│   │   ├── socratic_graph.py
-│   │   ├── tutor_graph.py
-│   │   └── assessment_agent.py
-│   ├── prompts/                 # System prompts per agent
-│   ├── parsers/                 # PDF + PPTX extraction
-│   ├── generators/              # PDF summary export
-│   └── models/types.py          # Pydantic schemas
-├── components/learn/            # LearnPage, SocraticChat, ProblemCard, etc.
-├── store/learning-store.ts      # Zustand: session, breakdown, problems, pendingFile
-└── lib/first-principles/types.ts  # Shared TypeScript types
+│   │   ├── orchestration_graph.py     # 3-node LangGraph pipeline
+│   │   ├── socratic_graph.py          # 4-node LangGraph pipeline
+│   │   ├── assessment_agent.py        # Answer evaluation
+│   │   └── llm_client.py              # Unified Claude / GPT-4 / Gemini wrapper
+│   ├── prompts/
+│   │   ├── breakdown.py               # First-principles decomposition prompt
+│   │   ├── orchestration.py           # Intake agent prompt
+│   │   ├── problems.py                # Practice problems generation prompt
+│   │   └── socratic.py                # Socratic dialogue system prompt
+│   ├── parsers/
+│   │   ├── pdf_parser.py              # pypdf text extraction
+│   │   └── pptx_parser.py             # python-pptx text extraction
+│   ├── generators/
+│   │   └── pdf_generator.py           # ReportLab PDF summary
+│   ├── models/types.py                # Pydantic request/response schemas
+│   ├── requirements.txt
+│   └── .env.example                   # Backend environment template
 ```
 
 ---
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+- **Node.js** 20+
+- **Python** 3.11+
+- **Supabase** project (for auth)
+- At least one LLM API key: Anthropic, OpenAI, or Google
 
-- Node.js 18+
-- Python 3.10+
-- At least one LLM API key (Anthropic, OpenAI, or Google)
-- Supabase project (for auth)
+---
 
-### 1. Clone and install
+## Setup
+
+### 1. Clone and install frontend dependencies
 
 ```bash
 git clone <repo-url>
 cd education-assistant
-
-# Frontend dependencies
 npm install
+```
 
-# Backend dependencies
+### 2. Configure frontend environment
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your values:
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
+| `NEXT_PUBLIC_APP_URL` | Frontend URL (e.g. `http://localhost:3000`) |
+| `PYTHON_API_URL` | Backend URL (default: `http://localhost:8000`) |
+| `USE_MOCK_DATA` | Set `true` to run without API keys |
+
+### 3. Configure backend environment
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env`:
+
+| Variable | Required | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | Yes* | Anthropic API key |
+| `OPENAI_API_KEY` | No | OpenAI API key |
+| `GOOGLE_API_KEY` | No | Google API key |
+| `PORT` | No | Server port (default: `8000`) |
+
+*At least one LLM provider key is required.
+
+### 4. Create a Python virtual environment
+
+```bash
 cd backend
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cd ..
 ```
 
-### 2. Configure environment
+---
 
-Create `.env.local` in the project root:
+## Running Locally
 
-```bash
-# Supabase (required for auth)
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# LLM providers (at least one required)
-ANTHROPIC_API_KEY=sk-ant-...
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=...
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-PYTHON_API_URL=http://localhost:8000
-
-# Dev options
-USE_MOCK_DATA=false   # set true to run without real API keys
-```
-
-### 3. Run
+Start both servers in separate terminals:
 
 **Terminal 1 — Python backend:**
 ```bash
 cd backend
-python main.py
-# → http://localhost:8000
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
 ```
 
 **Terminal 2 — Next.js frontend:**
 ```bash
 npm run dev
-# → http://localhost:3000
 ```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Running without API keys
+
+Set `USE_MOCK_DATA=true` in `.env.local`. The UI will use pre-built sample data for all AI responses with simulated streaming delays — no backend needed.
 
 ---
 
-## API Reference
+## API Endpoints
 
-All endpoints live on the Python backend at `http://localhost:8000`. Next.js API routes proxy to them automatically.
+All endpoints are on the Python backend. The Next.js frontend proxies them via `/api/*` to keep keys server-side.
 
 ### `POST /orchestrate`
-Accepts `multipart/form-data` (file upload) or JSON.
+Accepts `multipart/form-data` (file upload) or JSON (`{ topic, model }`).
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `topic` | string | Topic or document text |
-| `file` | File | Optional PDF or PPTX |
-| `model` | string | LLM model ID (default: `gpt-4o`) |
+Returns a Server-Sent Events stream:
 
-Returns a Server-Sent Events stream with stages: `intake` → `breakdown` → `problems` → `ready`
+| Event | Payload |
+|---|---|
+| `stage` | `{ stage, status, message }` — pipeline progress |
+| `intake` | `LearningIntent` — domain, difficulty, objectives |
+| `breakdown` | `FirstPrinciplesBreakdown` — principles, derivation, examples |
+| `problems` | `PracticeSet` — tiered problems with hints |
+| `ready` | `{ sessionId }` — pipeline complete |
+| `error` | `{ code, message }` |
 
 ### `POST /socratic`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sessionId` | string | Session from orchestrate |
-| `problemStatement` | string | The problem being solved |
-| `userMessage` | string | Student's latest message |
-| `conversationHistory` | array | Prior turns |
-| `turnNumber` | int | Current turn count |
-| `breakdown` | object | First-principles breakdown |
+```json
+{
+  "sessionId": "uuid",
+  "problemStatement": "...",
+  "userMessage": "...",
+  "conversationHistory": [...],
+  "turnNumber": 3,
+  "breakdown": { "firstPrinciples": [...] }
+}
+```
 
-Returns a Socratic question, optionally with a hinted principle (after turn 5).
+Returns: `system_question`, `goal_identified`, `variables_extracted`, `principle_hinted`.
 
 ### `POST /assess-answer`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `problemStatement` | string | |
-| `userAnswer` | string | Student's submitted answer |
-| `breakdown` | object | First-principles context |
-| `hintsRevealed` | int | Number of hints used |
+```json
+{
+  "problemStatement": "...",
+  "userAnswer": "...",
+  "breakdown": {...},
+  "hintsRevealed": 1
+}
+```
 
-Returns: `isCorrect`, `score (0–100)`, `strengths`, `gaps`, `socraticFollowUp`
+Returns: `isCorrect`, `score`, `strengths`, `gaps`, `socraticFollowUp`.
 
-### `POST /tutor`
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `homeworkQuestion` | string | The full question |
-| `conversationHistory` | array | Prior turns |
-| `turnNumber` | int | Current turn |
-
-Returns a coaching response and the current approach strategy.
+### `POST /generate-pdf`
+Accepts the full session summary. Returns `application/pdf`.
 
 ### `GET /models`
-Returns available models grouped by provider.
+Returns available models by provider.
+
+### `GET /health`
+Returns `{ status: "ok" }`.
 
 ---
 
-## Supported Models
+## Deployment
 
-| Provider | Models |
-|----------|--------|
-| Anthropic | `claude-3-5-sonnet-20241022`, `claude-3-opus-20240229` |
-| OpenAI | `gpt-4o`, `gpt-4-turbo`, `gpt-4` |
-| Google | `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-2.0-flash-lite` |
+### Frontend — Vercel
 
-Select a model from the dropdown in the UI before submitting.
+1. Push to GitHub and import the repo in Vercel.
+2. Set all variables from `.env.example` in the Vercel dashboard.
+3. Set `PYTHON_API_URL` to your deployed backend URL.
+
+### Backend — Railway / Render / Fly.io
+
+The backend is a standard ASGI app. Example start command:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Set `ANTHROPIC_API_KEY` (and optionally `OPENAI_API_KEY`, `GOOGLE_API_KEY`) as environment variables on the platform.
 
 ---
 
 ## Key Design Decisions
 
-**Python for all LLM orchestration** — LangGraph runs in the FastAPI backend; Next.js only handles UI and thin proxy routes.
+**Python for all LLM orchestration** — LangGraph runs in the FastAPI backend. Next.js only handles the UI and proxy routes. This keeps the orchestration logic testable, portable, and decoupled from the React rendering lifecycle.
 
-**SSE streaming** — The orchestration pipeline streams each stage as it completes so the UI progressively renders without waiting for the full response.
+**SSE streaming** — The orchestration pipeline streams each stage as it completes so the UI progressively renders the breakdown and problems without waiting for the full response. The frontend renders each piece as soon as it arrives.
 
-**Hint scaffolding** — Each practice problem has 3 leveled hints (vague → moderate → near-solution). The assessment agent discounts the score based on how many hints were revealed.
+**Hint scaffolding** — Each problem has three leveled hints (vague → moderate → near-solution). The assessment agent discounts the score based on how many hints were revealed, incentivising independent reasoning.
 
-**Socratic-only coaching** — Neither the Socratic agent nor the tutor ever outputs a direct answer. The tutor graph has explicit guardrails in its prompt to prevent answer leakage.
+**Socratic guardrails** — The Socratic agent has strict prompt-level constraints preventing it from outputting answers, formulas, or step-by-step solutions. It can only ask questions and reference principles.
 
-**Mock data mode** — Set `USE_MOCK_DATA=true` to run the full UI flow without API keys, useful for frontend development.
+**Mock data mode** — `USE_MOCK_DATA=true` runs the full UI flow using pre-built sample breakdowns, problems, and Socratic responses. Useful for developing UI components without spending API credits.
 
 ---
 

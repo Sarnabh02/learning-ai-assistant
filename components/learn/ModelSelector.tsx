@@ -22,7 +22,7 @@ export function ModelSelector({ selectedModel, onModelChange }: ModelSelectorPro
     fetch('/api/models')
       .then(res => res.json())
       .then(data => setModels(data.models || []))
-      .catch(err => console.error('Failed to load models:', err));
+      .catch(() => {});
   }, []);
 
   const selectedModelData = models.find(m => m.id === selectedModel);
