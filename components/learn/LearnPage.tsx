@@ -6,7 +6,6 @@ import type {
   LearnInput,
   FirstPrinciplesBreakdown,
   PracticeSet,
-  PracticeProblem,
   HintState,
   LearningIntent,
 } from '@/lib/first-principles/types';
@@ -16,7 +15,6 @@ import { BreakdownViewer } from './BreakdownViewer';
 import { PracticeSection } from './PracticeSection';
 import { FlashCardDeck } from './FlashCardDeck';
 import { LoadingPulse } from './LoadingPulse';
-import { SocraticChat } from '@/components/chat/SocraticChat';
 
 // ---------- Orchestration progress indicator ----------
 
@@ -126,7 +124,6 @@ export function LearnPage() {
 
   const [currentStage, setCurrentStage] = useState<StageKey | null>(null);
   const [completedStages, setCompletedStages] = useState<Set<StageKey>>(new Set());
-  const [socraticProblem, setSocraticProblem] = useState<PracticeProblem | null>(null);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [contentTab, setContentTab] = useState<'breakdown' | 'flashcards' | 'practice'>('breakdown');
 
@@ -166,7 +163,6 @@ export function LearnPage() {
     setIntent(null);
     setCurrentStage(null);
     setCompletedStages(new Set());
-    setSocraticProblem(null);
     setContentTab('breakdown');
     breakdownRef.current = null;
 
@@ -252,7 +248,6 @@ export function LearnPage() {
                 setPracticeSet(data.practiceSet as PracticeSet);
                 setCompletedStages((prev) => new Set([...prev, 'problems']));
                 setPhase('problems_ready');
-                setContentTab((prev) => (prev === 'breakdown' ? 'practice' : prev));
                 break;
 
               case 'error':
@@ -282,7 +277,6 @@ export function LearnPage() {
     setIntent(null);
     setCurrentStage(null);
     setCompletedStages(new Set());
-    setSocraticProblem(null);
     setContentTab('breakdown');
     setError(null);
     breakdownRef.current = null;
@@ -332,17 +326,7 @@ export function LearnPage() {
   const isLoading = phase === 'orchestrating' || phase === 'extracting' || phase === 'streaming';
 
   return (
-    <>
-      {socraticProblem && breakdown && (
-        <SocraticChat
-          breakdown={breakdown}
-          problem={socraticProblem}
-          hintsRevealed={hintState[socraticProblem.id] ?? 0}
-          onClose={() => setSocraticProblem(null)}
-        />
-      )}
-
-      <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-violet-600/10 blur-3xl" />
           <div className="absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-cyan-600/10 blur-3xl" />
@@ -458,12 +442,7 @@ export function LearnPage() {
 
               {/* Breakdown tab */}
               {contentTab === 'breakdown' && (
-                <BreakdownViewer
-                  breakdown={breakdown}
-                  isStreaming={false}
-                  onGenerateProblems={() => {}}
-                  isGeneratingProblems={false}
-                />
+                <BreakdownViewer breakdown={breakdown} />
               )}
 
               {/* Flashcards tab */}
@@ -487,43 +466,6 @@ export function LearnPage() {
                     hintState={hintState}
                     onRevealHint={handleRevealHint}
                   />
-
-                  {/* Socratic tutor CTA */}
-                  <div className="mt-8 rounded-2xl border border-violet-500/20 bg-violet-900/10 p-6">
-                    <h3 className="text-white font-semibold mb-1">
-                      Practice with your Socratic tutor
-                    </h3>
-                    <p className="text-white/50 text-sm mb-4">
-                      The AI tutor guides you to the answer through questioning — it never gives it away.
-                      Choose a problem to start.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {practiceSet.problems.map((prob) => (
-                        <button
-                          key={prob.id}
-                          onClick={() => setSocraticProblem(prob)}
-                          className="text-left px-4 py-3 bg-white/5 hover:bg-violet-600/20 border border-white/10 hover:border-violet-500/40 rounded-xl transition-all duration-200 group"
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span
-                              className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                prob.difficulty === 'easy'
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : prob.difficulty === 'medium'
-                                  ? 'bg-amber-500/20 text-amber-400'
-                                  : 'bg-rose-500/20 text-rose-400'
-                              }`}
-                            >
-                              {prob.difficulty}
-                            </span>
-                          </div>
-                          <p className="text-sm text-white/70 group-hover:text-white/90 line-clamp-2 transition-colors">
-                            {prob.statement}
-                          </p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
 
                   {/* Download Summary PDF */}
                   <div className="mt-4 flex justify-end">
@@ -550,7 +492,6 @@ export function LearnPage() {
             </>
           )}
         </div>
-      </div>
-    </>
+    </div>
   );
 }

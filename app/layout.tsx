@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'First Principles - Learn by Reasoning',
-  description: 'Master subjects through Socratic dialogue and first principles thinking',
+  description: 'Master subjects through first principles thinking',
 };
 
 export default function RootLayout({

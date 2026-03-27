@@ -84,33 +84,6 @@ export interface LearningIntent {
   focusConcepts: string[];
 }
 
-export interface SocraticMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  turnNumber: number;
-  goalIdentified?: string;
-  principleHinted?: { id: string; title: string; question: string };
-}
-
-export interface AnswerAssessment {
-  isCorrect: boolean;
-  score: number;       // 0-100
-  strengths: string[];
-  gaps: string[];
-  socraticFollowUp: string;
-}
-
-export interface LearningSession {
-  sessionId: string;
-  topic: string;
-  domain: string;
-  objectives: string[];
-  breakdown: FirstPrinciplesBreakdown | null;
-  practiceSet: PracticeSet | null;
-  conversationHistory: SocraticMessage[];
-  currentProblemId: string | null;
-}
-
 // ---------- API types ----------
 
 export interface BreakdownRequest {

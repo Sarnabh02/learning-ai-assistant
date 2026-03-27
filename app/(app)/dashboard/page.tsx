@@ -87,7 +87,7 @@ export default function DashboardPage() {
               </h2>
               <p className="text-lg md:text-xl text-purple-200 font-light max-w-2xl mx-auto">
                 Upload any PDF or PPTX. The AI analyzes your intent, builds a first-principles
-                breakdown, generates practice problems, and tutors you using Socratic dialogue.
+                breakdown, and generates practice problems.
               </p>
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
               <div className="relative">
                 <h4 className="text-xl font-bold text-white mb-1">Learn</h4>
                 <p className="text-violet-200 text-sm">
-                  AI breaks any topic into first principles, generates practice problems, and coaches you with Socratic dialogue.
+                  AI breaks any topic into first principles and generates practice problems.
                 </p>
               </div>
               <div className="relative ml-auto flex-shrink-0 text-violet-400 text-xl font-bold">→</div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
             <p className="text-lg font-semibold text-cyan-300 mb-4 text-center">How it works</p>
             <div className="text-sm space-y-1">
               <p className="text-violet-300 font-semibold">🔬 Learn</p>
-              <p className="text-purple-100 font-light">Upload or type a topic → AI builds first-principles breakdown → Practice problems → Socratic coaching</p>
+              <p className="text-purple-100 font-light">Upload or type a topic → AI builds first-principles breakdown → Practice problems</p>
             </div>
           </div>
         </div>

@@ -2,25 +2,12 @@ import type { FirstPrinciplesBreakdown } from '@/lib/first-principles/types';
 import { AxiomCard } from './AxiomCard';
 import { DerivationStep } from './DerivationStep';
 import { WorkedExample } from './WorkedExample';
-import { LoadingPulse } from './LoadingPulse';
 
 interface BreakdownViewerProps {
   breakdown: FirstPrinciplesBreakdown | null;
-  isStreaming: boolean;
-  onGenerateProblems: () => void;
-  isGeneratingProblems: boolean;
 }
 
-export function BreakdownViewer({
-  breakdown,
-  isStreaming,
-  onGenerateProblems,
-  isGeneratingProblems,
-}: BreakdownViewerProps) {
-  if (isStreaming) {
-    return <LoadingPulse message="Building your first principles breakdown..." />;
-  }
-
+export function BreakdownViewer({ breakdown }: BreakdownViewerProps) {
   if (!breakdown) return null;
 
   return (
@@ -83,19 +70,6 @@ export function BreakdownViewer({
         </div>
       </section>
 
-      {/* Generate problems CTA */}
-      <div className="pt-6 pb-4 mt-6 border-t border-white/10">
-        <p className="text-white/50 text-sm mb-4">
-          Ready to test your understanding?
-        </p>
-        <button
-          onClick={onGenerateProblems}
-          disabled={isGeneratingProblems}
-          className="px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-violet-600 to-cyan-600 text-white hover:from-violet-500 hover:to-cyan-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isGeneratingProblems ? 'Generating problems...' : 'Generate Practice Problems'}
-        </button>
-      </div>
     </div>
   );
 }

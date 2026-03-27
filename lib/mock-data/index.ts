@@ -21,16 +21,6 @@ export {
   getMockProblems,
 } from './practice-problems-samples';
 
-export {
-  MOCK_SOCRATIC_RESPONSES,
-  MOCK_SOCRATIC_DEFAULT,
-  MOCK_ASSESSMENTS,
-  MOCK_LEARNING_INTENTS,
-  getMockSocraticResponse,
-  getMockAssessment,
-  getMockLearningIntent,
-} from './socratic-samples';
-
 // Helper to check if mock data is enabled
 export function isMockDataEnabled(): boolean {
   return process.env.USE_MOCK_DATA === 'true';

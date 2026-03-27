@@ -1,6 +1,6 @@
 # LearnAI — Learn Anything from First Principles
 
-LearnAI is an AI-powered education assistant that transforms any topic or document into a structured learning experience. It breaks down complex subjects into their fundamental building blocks, generates targeted practice problems, and coaches students through them using Socratic dialogue — never giving answers directly, always guiding discovery.
+LearnAI is an AI-powered education assistant that transforms any topic or document into a structured learning experience. It breaks down complex subjects into their fundamental building blocks and generates targeted practice problems to reinforce understanding.
 
 ---
 
@@ -14,25 +14,6 @@ Upload a PDF or PPTX, or type any topic, and the system generates a structured b
 
 ### Practice Problems
 Five difficulty-graded problems (easy / medium / hard) targeting the specific first principles identified. Each problem includes three progressive hints that reveal themselves one at a time to scaffold understanding without giving anything away.
-
-### Socratic Coaching
-An AI tutor engages with the student on each practice problem via a chat interface, powered by a 4-node LangGraph pipeline:
-
-| Node | What it does |
-|---|---|
-| `identify_goal` | Understands what the student is trying to solve |
-| `extract_variables` | Identifies known/unknown quantities and constraints |
-| `rank_principles` | Surfaces the most relevant first principles from the breakdown |
-| `generate_question` | Asks one targeted guiding question — never reveals the answer |
-
-After turn 5, the tutor may hint at a relevant first principle to help the student connect theory to the problem.
-
-### Answer Assessment
-After the student submits an answer, the AI evaluates it against the first principles context and returns:
-- Correct / incorrect determination
-- Score (0–100), discounted based on hints used
-- Identified strengths and conceptual gaps
-- A Socratic follow-up question to deepen understanding
 
 ### Flashcards
 Every first principle, derivation step, and worked example is available as an interactive flashcard deck for rapid review.
@@ -54,20 +35,16 @@ Run the full UI without any API keys by setting `USE_MOCK_DATA=true`. Useful for
 Browser
   └── Next.js 16 (App Router, TypeScript, Tailwind CSS v4)
         ├── /api/orchestrate    →  Python FastAPI /orchestrate   (SSE streaming)
-        ├── /api/socratic       →  Python FastAPI /socratic
-        ├── /api/assess-answer  →  Python FastAPI /assess-answer
         ├── /api/generate-pdf   →  Python FastAPI /generate-pdf
         └── /api/models         →  Python FastAPI /models
 
 Python FastAPI (uvicorn, port 8000)
   ├── /orchestrate   — 3-node LangGraph: intake → breakdown → problems
-  ├── /socratic      — 4-node LangGraph: identify_goal → extract_variables → rank_principles → generate_question
-  ├── /assess-answer — LLM-based answer evaluation
   ├── /generate-pdf  — ReportLab PDF generation (no LLM call)
   └── /models        — Lists available models by provider
 
 Auth: Supabase (email/password + OAuth, session refresh via Next.js proxy middleware)
-State: Zustand (client-side session and pending file handoff between routes)
+State: Zustand (client-side pending file handoff between routes)
 ```
 
 The frontend is a thin proxy layer — all AI reasoning runs in the Python backend via LangGraph agents. API keys never touch the browser.
@@ -114,15 +91,12 @@ education-assistant/
 │   │   └── learn/page.tsx             # Main learning interface
 │   ├── api/
 │   │   ├── orchestrate/route.ts       # SSE proxy → Python /orchestrate
-│   │   ├── socratic/route.ts          # Proxy → Python /socratic
-│   │   ├── assess-answer/route.ts     # Proxy → Python /assess-answer
 │   │   ├── generate-pdf/route.ts      # Proxy → Python /generate-pdf
 │   │   └── models/route.ts            # Proxy → Python /models
 │   ├── layout.tsx
 │   └── page.tsx                       # Landing page
 ├── components/
 │   ├── chat/
-│   │   ├── SocraticChat.tsx           # Socratic dialogue UI
 │   │   └── ChatMessage.tsx
 │   └── learn/
 │       ├── LearnPage.tsx              # Orchestration controller (SSE consumer)
@@ -138,7 +112,7 @@ education-assistant/
 │   ├── mock-data/                     # Sample responses for USE_MOCK_DATA mode
 │   └── supabase/                      # Browser/server/middleware Supabase clients
 ├── store/
-│   └── learning-store.ts              # Zustand: session, breakdown, problems, file handoff
+│   └── learning-store.ts              # Zustand: pending file handoff between routes
 ├── proxy.ts                           # Next.js auth proxy (Supabase session refresh)
 ├── next.config.ts
 ├── tailwind.config.ts
@@ -147,14 +121,11 @@ education-assistant/
 │   ├── main.py                        # FastAPI application
 │   ├── agents/
 │   │   ├── orchestration_graph.py     # 3-node LangGraph pipeline
-│   │   ├── socratic_graph.py          # 4-node LangGraph pipeline
-│   │   ├── assessment_agent.py        # Answer evaluation
 │   │   └── llm_client.py              # Unified Claude / GPT-4 / Gemini wrapper
 │   ├── prompts/
 │   │   ├── breakdown.py               # First-principles decomposition prompt
 │   │   ├── orchestration.py           # Intake agent prompt
-│   │   ├── problems.py                # Practice problems generation prompt
-│   │   └── socratic.py                # Socratic dialogue system prompt
+│   │   └── problems.py                # Practice problems generation prompt
 │   ├── parsers/
 │   │   ├── pdf_parser.py              # pypdf text extraction
 │   │   └── pptx_parser.py             # python-pptx text extraction
@@ -271,36 +242,7 @@ Returns a Server-Sent Events stream:
 | `intake` | `LearningIntent` — domain, difficulty, objectives |
 | `breakdown` | `FirstPrinciplesBreakdown` — principles, derivation, examples |
 | `problems` | `PracticeSet` — tiered problems with hints |
-| `ready` | `{ sessionId }` — pipeline complete |
 | `error` | `{ code, message }` |
-
-### `POST /socratic`
-
-```json
-{
-  "sessionId": "uuid",
-  "problemStatement": "...",
-  "userMessage": "...",
-  "conversationHistory": [...],
-  "turnNumber": 3,
-  "breakdown": { "firstPrinciples": [...] }
-}
-```
-
-Returns: `system_question`, `goal_identified`, `variables_extracted`, `principle_hinted`.
-
-### `POST /assess-answer`
-
-```json
-{
-  "problemStatement": "...",
-  "userAnswer": "...",
-  "breakdown": {...},
-  "hintsRevealed": 1
-}
-```
-
-Returns: `isCorrect`, `score`, `strengths`, `gaps`, `socraticFollowUp`.
 
 ### `POST /generate-pdf`
 Accepts the full session summary. Returns `application/pdf`.
@@ -339,11 +281,9 @@ Set `ANTHROPIC_API_KEY` (and optionally `OPENAI_API_KEY`, `GOOGLE_API_KEY`) as e
 
 **SSE streaming** — The orchestration pipeline streams each stage as it completes so the UI progressively renders the breakdown and problems without waiting for the full response. The frontend renders each piece as soon as it arrives.
 
-**Hint scaffolding** — Each problem has three leveled hints (vague → moderate → near-solution). The assessment agent discounts the score based on how many hints were revealed, incentivising independent reasoning.
+**Hint scaffolding** — Each problem has three leveled hints (vague → moderate → near-solution), encouraging independent reasoning before revealing more.
 
-**Socratic guardrails** — The Socratic agent has strict prompt-level constraints preventing it from outputting answers, formulas, or step-by-step solutions. It can only ask questions and reference principles.
-
-**Mock data mode** — `USE_MOCK_DATA=true` runs the full UI flow using pre-built sample breakdowns, problems, and Socratic responses. Useful for developing UI components without spending API credits.
+**Mock data mode** — `USE_MOCK_DATA=true` runs the full UI flow using pre-built sample breakdowns and problems. Useful for developing UI components without spending API credits.
 
 ---
 

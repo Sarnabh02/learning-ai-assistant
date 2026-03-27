@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getMockBreakdown, getMockProblems, getMockLearningIntent, simulateDelay } from '@/lib/mock-data';
+import { getMockBreakdown, getMockProblems, simulateDelay } from '@/lib/mock-data';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
@@ -40,8 +40,13 @@ export async function POST(request: NextRequest) {
           // Stage 1: Extract intent
           sendEvent('stage', { stage: 'intake', status: 'started' });
           await simulateDelay(800);
-          const intent = getMockLearningIntent(topic);
-          sendEvent('intent', intent);
+          const intent = {
+            domain: 'General',
+            difficulty: 'intermediate',
+            learningObjectives: [`Understand the core principles of ${topic}`],
+            focusConcepts: [topic],
+          };
+          sendEvent('intake', intent);
           sendEvent('stage', { stage: 'intake', status: 'completed' });
 
           // Stage 2: Generate breakdown
